@@ -11,13 +11,26 @@ Supports:
 
 <img width="3546" height="2916" alt="P1340350_fix" src="https://github.com/user-attachments/assets/2bb12afe-3533-4745-b7fa-1a2be5620df6" />
 
+## Battery Charging
+
+Plug a USB cable into the Display Module's USB type C connector on the underside of the black display stand.  The other end of the cable can be plugged into a USB charger or a powered port on a computer.
+
+The Display board should then be turned ON to connect the battery to the internal battery charger.  If the display modules power switch is turned off, the LED will periodically dimly flash once or twice, but nothing is actually being charged.
+
+Charging rate is about 1/2 the rate of the battery usage with a continuous display, but not all segments in every display tube being lit.
+The test pattern (Who you gonna Call..) easily ran 12 hours but took about 20 hours to fully recharge.
+
+
 ## Arduino Software setup
 
 The Gizmo Display Module usus a Seeed Studio XIAO ESP32C6
 
 Instructions for Arduino software installation (https://wiki.seeedstudio.com/xiao_esp32c6_getting_started/#software-preparation)
 
+
 ## Gizmo Display String Syntax
 
+
 ## Initial display string location in the Arduino Code
+
 
