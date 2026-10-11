@@ -1,7 +1,7 @@
 # GizmoDisplay-Arduino
 Arduino code for the Gizmo Display Module that runs locally on the Display Module controller board.
 
-Supports 
+Supports: 
 1) One defined string for use on powerup
 2) A lower power display when charging (only flashes the Error Box LED)
    The number of flashes is the integer portion of the battery voltage.
@@ -17,7 +17,7 @@ The Gizmo Display Module usus a Seeed Studio XIAO ESP32C6
 
 Instructions for Arduino software installation (https://wiki.seeedstudio.com/xiao_esp32c6_getting_started/#software-preparation)
 
-## Arduino Software Features
+## Gizmo Display String Syntax
 
-## Initial display string location in the Arduino code
+## Initial display string location in the Arduino Code
 
