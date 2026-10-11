@@ -744,10 +744,9 @@ void setup()
   // setup Bluetooth BLE
   ble_initialize(); // setup ble 
   // setup the default string to display on powerup 
-  input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n "; // default if the incoming app2xaio is not one to display
-  input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nBAT %BBV\n "; // default if the incoming app2xaio is not one to display
+  input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n "; 
+  input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nBAT %BBV\n "; 
   input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \n555-2368\n%P2000        Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nJL5-2020\n%P2000 \nBAT %BBV\n "; // default if the incoming app2xaio is not one to display
-    //input_string = "Hello\n    Fred"; // default if the incoming app2xaio is not one to display
   //input_string = "BAT %BBV"; // default if the incoming app2xaio is not one to display
   //input_string = "%NNN \n Hi %NN\n       BAT %BBV        "; // default if the incoming app2xaio is not one to display
   //input_string = "%1  Hi  \n  Bye \n%0Three\n%1Four\n%0Five\n%1Six\n%0"; // default if the incoming app2xaio is not one to display
@@ -775,7 +774,7 @@ void setup()
   //input_string = "%0%BBB\n%1%BBB\n";
   //input_string = " ";
   // Hugh
-  input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \n555-2368\n%P3000 \n%P4000       Bustin' Makes Me Feel Good!        \n%P4000       I Ain't AFraid OF No Ghosts        \n%P4000 We Came\n We Saw\n        We Kicked It's Ass        \n%P4000       Switch Me On        \n%P4000       He Slimed Me        \n%P4000       We Got One!        \n%P4000       No Job Is Too BIG - No Fee Is Too BIG        \n%P4000       That's A BIG Twinkie        \n%P4000       When Someone Asks IF You're A God - You Say\n  YES!  \n%P4000       I Love This Town!!!        \n%P4000 Doeeee\n Raayyyy\n Egonnnn\n%P2000 \n%P4000";
+  //input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \n555-2368\n%P3000 \n%P4000       Bustin' Makes Me Feel Good!        \n%P4000       I Ain't AFraid OF No Ghosts        \n%P4000 We Came\n We Saw\n        We Kicked It's Ass        \n%P4000       Switch Me On        \n%P4000       He Slimed Me        \n%P4000       We Got One!        \n%P4000       No Job Is Too BIG - No Fee Is Too BIG        \n%P4000       That's A BIG Twinkie        \n%P4000       When Someone Asks IF You're A God - You Say\n  YES!  \n%P4000       I Love This Town!!!        \n%P4000 Doeeee\n Raayyyy\n Egonnnn\n%P2000 \n%P4000";
   // Matt
   //input_string = "       Greenstream        \n%P2000";
   //input_string = "       THE GREENSTREAM GHOSTBUSTERS        \n%P2000";
