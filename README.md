@@ -1,5 +1,6 @@
 # GizmoDisplay-Arduino
 Arduino code for the Gizmo Display Module that runs locally on the Display Module controller board.
+
 Supports 
 1) One defined string for use on powerup
 2) A lower power display when charging (only flashes the Error Box LED)
