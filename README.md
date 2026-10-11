@@ -1,5 +1,6 @@
 # GizmoDisplay-Arduino
 Arduino code for the Gizmo Display Module
 
-![Assembled Gizmo with Giszmo Display Module](https://www.ghostlab42.com/img/gizmo/P1340333_fix.jpg)
+<img width="3546" height="2916" alt="P1340350_fix" src="https://github.com/user-attachments/assets/2bb12afe-3533-4745-b7fa-1a2be5620df6" />
+
 
