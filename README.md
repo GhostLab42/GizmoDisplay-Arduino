@@ -31,6 +31,15 @@ Instructions for Arduino software installation (https://wiki.seeedstudio.com/xia
 ## Gizmo Display String Syntax
 
 
+
 ## Initial display string location in the Arduino Code
 
+Search for the line that is 
+// setup the default string to display on powerup
 
+The last assignment to the String "input_string" will be used for the main string to display until it is change dynamically be some Bluetooth command.
+On powerup, the code will using this display string since the Bluetooth overrides are not "sticky".
+
+The default string is currently:
+input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \n555-2368\n%P2000        Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nJL5-2020\n%P2000 \nBAT %BBV\n "; // default if the incoming app2xaio is not one to display
+  
