@@ -23,7 +23,7 @@ The test pattern (Who you gonna Call..) easily ran 12 hours but took about 20 ho
 
 ## Arduino Software setup
 
-The Gizmo Display Module usus a Seeed Studio XIAO ESP32C6
+The Gizmo Display Module uses a Seeed Studio XIAO ESP32C6 based micro controller board.
 
 Instructions for Arduino software installation (https://wiki.seeedstudio.com/xiao_esp32c6_getting_started/#software-preparation)
 
