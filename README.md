@@ -79,3 +79,7 @@ Android allows you to save the value, but iOS APP does not support this feature 
 <img width="270" height="602" alt="Screenshot_8" src="https://github.com/user-attachments/assets/6650bafb-f061-436c-850c-3f5dd3e84ea1" />
 
 9. When you are done, you can DISCONNECT (upper right hand portion of the screen) to sever the connection with the phone.
+
+Video of this using my pixel phone with the latest version of Android (as of Oct, 2026):
+
+https://www.youtube.com/watch?v=VvP__x-wtGY
