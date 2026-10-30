@@ -8,7 +8,7 @@
   https://www.mouser.com/datasheet/3/308/1/ACPSA04_41SEKWA.pdf
   https://www.digikey.com/en/products/detail/texas-instruments/TLC59283RGER/3523721
   https://www.ti.com/lit/ds/symlink/tlc59283.pdf?HQS=dis-dk-null-digikeymode-dsf-pf-null-wwe&ts=1773952884581
-
+s
   The controller is a Seeed XIAO-ESP32-C6 module.  It has Wifi, Bluetooth, some GPIO and a battery charger built in for a Li-ion battery.
   The Battery is a 18650 rechargeable battery.
   
@@ -726,6 +726,11 @@ void delay_check(int wait_ms) {
 // the setup function runs once when you press reset or power the board
 void setup()
 {
+    // Set up the startup state for the Blank and Lat signal connections to the driver
+  pinMode(DRIVER_Blank, OUTPUT); // overall display control
+  digitalWrite(DRIVER_Blank, HIGH); // turn off the display
+  pinMode(DRIVER_LAT, OUTPUT); // Latch signal, strobes high to do something
+  digitalWrite(DRIVER_LAT, LOW);
   // initialize Serial debug message port
   Serial.begin(115200);
   // initialize the SPI communications 
@@ -733,20 +738,15 @@ void setup()
   // Set up the two inputs (maybe not needed as they defualt to inputs?)
   pinMode(A0, INPUT); // battery voltage/2
   pinMode(A1, INPUT); // USB voltage/2
-    // Set up the startup state for the LAT and Blank signal connections to the driver
-  pinMode(DRIVER_LAT, OUTPUT);
-  digitalWrite(DRIVER_LAT, LOW);
-  pinMode(DRIVER_Blank, OUTPUT); // normal state - this signal pulses high for 20nS minimum
-  digitalWrite(DRIVER_Blank, HIGH); // turn off the display
   // set up the error box LED
   pinMode(ErrorBox_LED, OUTPUT);
   digitalWrite(ErrorBox_LED, HIGH); // turn off the Error Box LED
   // setup Bluetooth BLE
   ble_initialize(); // setup ble 
-  // setup the default string to display on powerup 
-  input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n "; 
-  input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nBAT %BBV\n "; 
-  input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \n555-2368\n%P2000        Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nJL5-2020\n%P2000 \nBAT %BBV\n "; // default if the incoming app2xaio is not one to display
+  //setup the default string to display on powerup 
+  //input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n "; 
+  //input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nBAT %BBV\n "; 
+  //input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \n555-2368\n%P2000        Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nJL5-2020\n%P2000 \nBAT %BBV\n "; // default if the incoming app2xaio is not one to display
   //input_string = "BAT %BBV"; // default if the incoming app2xaio is not one to display
   //input_string = "%NNN \n Hi %NN\n       BAT %BBV        "; // default if the incoming app2xaio is not one to display
   //input_string = "%1  Hi  \n  Bye \n%0Three\n%1Four\n%0Five\n%1Six\n%0"; // default if the incoming app2xaio is not one to display
@@ -757,6 +757,7 @@ void setup()
   //input_string = "0OH%D123%D"; // default if the incoming app2xaio is not one to display
   //input_string = "       Firmware Version   V%V  "; // default if the incoming app2xaio is not one to display
   //input_string = "%T\n       Test Complete\n \n%BBV BAT\n%P2000 "; // default if the incoming app2xaio is not one to display
+  //input_string = "%E0050%0\n%1\n%0\n%1\n%0\n%1\n%0\n%1";
   //input_string = "%BB";
   //input_string = "%BB\n%P9999W1\n%P9999W2\n%P9999W3\nZzzzzz\n%P5000%Z";
   //input_string = "@ABCDEFG";
@@ -772,12 +773,21 @@ void setup()
   //input_string = "01234567";
   //input_string = "89:;<=>?";
   //input_string = "%0%BBB\n%1%BBB\n";
-  //input_string = " ";
+  //input_string = " ";  // blank
+
+  // Cap
+  //input_string = "       We're ready to believe you        \n  GHOST\nBUSTERS!\n \n555-2368\n%P2000        Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nJL5-2020\n%P2000 "; // Requested
   // Hugh
   //input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \n555-2368\n%P3000 \n%P4000       Bustin' Makes Me Feel Good!        \n%P4000       I Ain't AFraid OF No Ghosts        \n%P4000 We Came\n We Saw\n        We Kicked It's Ass        \n%P4000       Switch Me On        \n%P4000       He Slimed Me        \n%P4000       We Got One!        \n%P4000       No Job Is Too BIG - No Fee Is Too BIG        \n%P4000       That's A BIG Twinkie        \n%P4000       When Someone Asks IF You're A God - You Say\n  YES!  \n%P4000       I Love This Town!!!        \n%P4000 Doeeee\n Raayyyy\n Egonnnn\n%P2000 \n%P4000";
   // Matt
   //input_string = "       Greenstream        \n%P2000";
   //input_string = "       THE GREENSTREAM GHOSTBUSTERS        \n%P2000";
+  //
+  //input_string = "       Ghostbusters - We're Ready to Beleive You!        \n  \n  GHOST\nBUSTERS!\n \n       We're Ready to Beleive You!        \n ";
+  //
+  //input_string = " \n%E0200\n%1WARNING\n%0 \n%1WARNING\n%0 \n%1WARNING\n%0 \n%1WARNING\n%0 \n%1WARNING\n%0 \n                  PKE ALERT!            \n \n%1WARNING\n%0  \n%1WARNING\n%0 \n%1WARNING\n%0  \n%1WARNING\n%0 \n%1WARNING\n%0 \n%E1000%P3000        Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \n555-2368\n%P4000 \n";
+  //default test display string if no one asks for a specific sequence
+  input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \n555-2368\n%P2000        Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nJL5-2020\n%P2000 \nBAT %BBV\n "; // default if the incoming app2xaio is not one to display
 }
 
 // the loop function runs over and over again forever
@@ -823,7 +833,8 @@ void loop() {
     for (int i = CurrentStart; i<=min( max(CurrentStart,CurrentStart+CurrentLength-8),max(CurrentStart,Str_length-8) ); i++) {
       update_display(i,CurrentLength-1);
       // delay, but keep checking for incoming strings
-      delay_check(Delay_ms); // the scrolling delay
+      if (i > CurrentStart)
+        delay_check(Delay_ms); // the scrolling delay
     }
     
     CurrentStart += (CurrentLength + 1); // account for the /n character separating each substring
@@ -833,4 +844,4 @@ void loop() {
 
   } // While there are still characters to work on in the string
 
-} // loop  
+} // loop
