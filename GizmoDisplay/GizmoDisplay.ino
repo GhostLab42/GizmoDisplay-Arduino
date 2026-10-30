@@ -8,7 +8,7 @@
   https://www.mouser.com/datasheet/3/308/1/ACPSA04_41SEKWA.pdf
   https://www.digikey.com/en/products/detail/texas-instruments/TLC59283RGER/3523721
   https://www.ti.com/lit/ds/symlink/tlc59283.pdf?HQS=dis-dk-null-digikeymode-dsf-pf-null-wwe&ts=1773952884581
-s
+
   The controller is a Seeed XIAO-ESP32-C6 module.  It has Wifi, Bluetooth, some GPIO and a battery charger built in for a Li-ion battery.
   The Battery is a 18650 rechargeable battery.
   
