@@ -19,7 +19,7 @@
   A single Red LED is located in the Error box which also has a 150 ohm series resistor attached to the battery voltage.
   GPIO 0 is connected to the Cathode of the LED which will light the LED if driven low.
 
-  The goal is to develope a phone app that can send a message or pattern to be displayed on the Gizmo.
+  The goal is to develop a phone app that can send a message or pattern to be displayed on the Gizmo.
   Currently working on the internal generation and control of the display based on a character string. 
 
 
@@ -38,10 +38,10 @@
     %0 - turn off the Error Box LED
     %Sxxxx - update the Speed setting.  How fast the characters scroll.  
               Each "x" must be a digit (0-9) indicating the # of mS between updates to the display (0001 to 9999)
-    %Exxxx - update the substring delay/pause.  Eacxh string or substring deliniated by a \n will have a delay after it is displayed.
+    %Exxxx - update the substring delay/pause.  Each string or substring delineated by a \n will have a delay after it is displayed.
               Each "x" must be a digit (0-9) indicating the # of mS between updates to the display (0001 to 9999)
     
-    Other immidiate Actions done only in parse_display_string
+    Other immediate Actions done only in parse_display_string
     %Pxxxx - just Pause.  Each "x" must be a digit (0-9) indicating the # of mS to just pause and do not do any updates (0001 to 9999)
     %T - run the test pattern to make sure all segments of each display are working - does use the blocking delay (currently)
     %Z - put the board in deep sleep = must press the reset button to wake it up!
