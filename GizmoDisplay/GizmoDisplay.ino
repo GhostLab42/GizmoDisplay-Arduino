@@ -33,6 +33,7 @@
     %V              - replace with Version number
   
     Immediate Actions (in parse_display_string and ble_support)  If sent as a separate string, does not change the display string
+    %2 - turn on (10%) or off (90%) the Error Box LED
     %1 - turn on the Error Box LED
     %0 - turn off the Error Box LED
     %Sxxxx - update the Speed setting.  How fast the characters scroll.  
@@ -52,13 +53,21 @@
   so can be used to dynamically adjust the update rate of the displaying string.
 
   Release Notes:
-
+  V1.1 : 11/07/2026 First version working with APP, lots of minor changes found through debuging
   V1.0 : xx/xx/2026 Initial version
+
+  Future features to be investigated:
+  1) Add another character to also work as "\n" since that may be a problem to enter in the app
+  2) Immediate incoming bluetooth string overide since waiting for a current long string to complete can be confusing...
 
 */
 
 // Version number
-String VERSION = "1.0"; // Must be a 3 character version number
+String VERSION = "1.1"; // Must be a 3 character version number formatted as "X.X", where X can be any number
+// Globals for use by anyone...
+bool debug = false; // indicates if we should output any serial data
+bool debug_msg_in = false; // indicates if we should output any serial data about an incoming BLE string
+                           // Also allows testing initial display strings while connected via USB
 
 // Includes
 #include <SPI.h>
@@ -86,24 +95,25 @@ const uint16_t ASCII_chars [128] = {
 0x0040, 0x0100, 0x0400, 0x1000, 0x0008, 0x0004, 0x0001, 0x0020, //  24- 31 More Unique symbols. 8 spinning singles
 // Standard characters
 0x0000, 0x4200, 0x0240, 0x064B, 0x2CD9, 0x3535, 0x0449, 0x0040, //  32- 39 " !"#$%&'"
-0x1100, 0x0024, 0x156D, 0x0449, 0x0040, 0x0401, 0x4000, 0x0104, //  40- 47 "()*+'-./"
+0x1100, 0x0024, 0x156D, 0x0449, 0x4000, 0x0401, 0x4000, 0x0104, //  40- 47 "()*+,-./"
 0x2B96, 0x0048, 0x0E83, 0x2E81, 0x2611, 0x2C91, 0x2C93, 0x2280, //  48- 55 "01234567"
-0x2E93, 0x2E91, 0x2200, 0x6200, 0x1100, 0x0C01, 0x0024, 0x4688, //  56- 63 "89:;<=>?"
+0x2E93, 0x2E91, 0x0880, 0x0C81, 0x1100, 0x0C01, 0x0024, 0x4688, //  56- 63 "89:;<=>?"
 0x0ED2, 0x2693, 0x1993, 0x0892, 0x2AC8, 0x0893, 0x0093, 0x2C92, //  64- 71 "@ABCDEFG"
 0x2613, 0x08C8, 0x00C6, 0x1113, 0x0812, 0x2332, 0x3232, 0x2A92, //  72- 79 "HIJKLMNO"
 0x0693, 0x7A92, 0x1693, 0x2C91, 0x00C8, 0x2A12, 0x0116, 0x3216, //  80- 87 "PQRSTUVW"
 0x1124, 0x0619, 0x0984, 0x0892, 0x1020, 0x2A80, 0x1004, 0x0800, //  88- 95 "XYZ[\]^_"
-0x0040, 0x080D, 0x2C13, 0x0C03, 0x2E03, 0x0807, 0x0508, 0x2F00, //  96-103 "'abcdefg"
+0x0080, 0x080D, 0x2C13, 0x0C03, 0x2E03, 0x0807, 0x0508, 0x2F00, //  96-103 "'abcdefg"
 0x2413, 0x0008, 0x0046, 0x1148, 0x1040, 0x240B, 0x2403, 0x2C03, // 104-111 "hijklmno"
 0x0033, 0x3031, 0x0403, 0x1C00, 0x1441, 0x2802, 0x0006, 0x280A, // 112-119 "pqrstuvw"
-0x1124, 0x2E40, 0x0805, 0x1101, 0x0048, 0x0424, 0x0130, 0x0000  // 120-127 "Xyz{|}~ "
+0x1124, 0x2E40, 0x0805, 0x1101, 0x0048, 0x0424, 0x0070, 0x0000  // 120-127 "Xyz{|}~ "
 };
 
 const char SPECIAL = '%'; // Used to define the special character that is not displayed and is for identifying codes
 // This needs to work in the app and the '\t' was not easy to manually enter, so went with a character that did not display well!
+const uint16_t Delay_default_ms = 200; // Default value for Delay_ms
+const uint16_t EOS_default_ms = 1000; // Default value for EndOfSubstring_ms
 
-// Globals for use by anyone...
-bool debug = false; // indicates if we should output any serial data
+
 
 // BLE connection use
 BLEServer* pServer = NULL;
@@ -112,8 +122,10 @@ bool deviceConnected = false; // flag to show what the current status is from th
 bool previousDeviceConnected = false; // last value of device connected, so we can tell when it changes
 
 // data from app
-bool new_string_rcvd = false; // used to indicate a new string has been received
-String app2xaio = " "; // return string from the APP used for message display
+String app2xaio = ""; // return string from the APP used for message display
+
+bool app2_building = true;  // OK to update the app2xaio string
+bool ble_sup_rdy = false; // used to indicate that ble can look at the string
 bool new_input_string = false; // start by processing the default string
 
 // using the evil string object...
@@ -122,8 +134,8 @@ String display_string = " "; // just a blank screen if not overwritten. Copied f
 
 // Global Veriables for display
 uint16_t Str_length;  // used to know if we are in-bounds as a check
-uint16_t Delay_ms = 200; // starting value for delay in mS
-uint16_t EndOfSubstring_ms = 1000; // delay between substrings
+uint16_t Delay_ms = Delay_default_ms; // starting value for delay in mS
+uint16_t EndOfSubstring_ms = EOS_default_ms; // delay between substrings
 uint16_t Pause_ms =   0; // pause requested in ms
 
 
@@ -141,11 +153,40 @@ class MyServerCallbacks: public BLEServerCallbacks {
     }
 };
 
+// MIT's bluetooth implementation only allows at most 20 characters and at that max, the 20th character is always 00.
+// So really at most 19 useful characters.  The app will break up a longer string into 18 character chunks that
+// would need to be put back together.  And to indicate this is an 18 character chunk that needs to be extended, 
+// the 19th character needs to be "~".
 class CharacteristicsCallBack: public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pString) override {
-    app2xaio = pString->getValue();
-    new_string_rcvd = true;
-    if (debug) Serial.println("BLECharacteristicCallbacks, app2xaio: " + app2xaio + "  Length = " + app2xaio.length());
+    // only do something with this if we are in the string building phase
+    if (app2_building) {
+      String temp_incoming_msg = pString->getValue();
+      if ( (temp_incoming_msg.length() == 20) && (temp_incoming_msg.charAt(18) == '~') ) {
+        // Found one chunk of a string since MIT's bluetooth only likes 19 characters...
+        if (debug_msg_in) Serial.println("Got One!");
+        // just append the incoming partial character string to app2xaio
+        app2xaio += temp_incoming_msg;  // append this chunk on to the app2xaio string
+        app2xaio.remove(app2xaio.length() - 2); // and remove the last two characters, a "~" and a null
+      }
+      else {
+        app2xaio += pString->getValue();  // Append the full incoming string since it is either short or ending of a longer string
+        if (app2xaio.length() > 1) {
+          app2_building = false; // no more incoming messages allowed until we get this one parsed
+          ble_sup_rdy = true;  // indicate ble_support should look at the string
+          // Remove 1 character starting from the last index
+          app2xaio.remove(app2xaio.length() - 1); 
+          // Help with figuring out what the APP is actually sending!
+          if (debug || debug_msg_in) {
+            Serial.print("BLECharacteristicCallbacks, app2xaio: '" + app2xaio + "'  Length = " + app2xaio.length() + "   First char: ");
+            Serial.println(app2xaio.charAt(0), HEX);
+          }
+        }
+      }
+    }
+    else if (debug_msg_in) {
+        Serial.println("BLECharacteristicCallbacks, **** BLOCKED **** app2xaio: '" + app2xaio + "'  Length = " + app2xaio.length());
+    }
   }
 };
 
@@ -210,7 +251,10 @@ bool ms_delay_check (String potential_request) {
     if (temp_ms > 0) {
       switch (potential_request.charAt(1)) {
         case 'S': // Speed setting
-          Delay_ms = temp_ms; // uipdate a GLOBAL variable
+          if (temp_ms == 9999)
+            Delay_ms = Delay_default_ms; // 
+          else
+            Delay_ms = temp_ms; // uipdate a GLOBAL variable
           if (debug) {
             Serial.print("ms_delay_check, Delay_ms: ");
             Serial.println(Delay_ms);
@@ -218,7 +262,10 @@ bool ms_delay_check (String potential_request) {
           ms_found = true; // We Got One!
           break;
         case 'E': // End of substring delay
-          EndOfSubstring_ms = temp_ms; // uipdate a GLOBAL variable
+          if (temp_ms == 9999)
+            EndOfSubstring_ms = EOS_default_ms; // 
+          else
+            EndOfSubstring_ms = temp_ms; // uipdate a GLOBAL variable
           if (debug) {
             Serial.print("ms_delay_check, EndOfSubstring_ms: ");
             Serial.println(EndOfSubstring_ms);
@@ -239,34 +286,42 @@ bool ms_delay_check (String potential_request) {
 void ble_support() {
   // conncted
   if (deviceConnected) {
-    // check for a new string and also decide if it needs to be displayed or is only adjust some display rate(s)
-    if (new_string_rcvd) {
+    // check for a new string and also decide if it needs to be displayed or is only to adjust some display rate(s)
+    if (ble_sup_rdy) {
       // only look once for each received string
-      new_string_rcvd = false; 
+      ble_sup_rdy = false; 
       // and the string must have some length to be interesting
       if (app2xaio.length()>0) { // we have a string to look at!
         new_input_string = true; // good chance we want to update the input string
         if (debug) Serial.println("ble_support, app2xaio: " + app2xaio + "  Length = " + app2xaio.length());
-
         // look for a delay only which won't change the string that is currently being displayed
         if (app2xaio.length()==6) {
           if (ms_delay_check(app2xaio.substring(0,6))) { // Found and performed a valid time
             new_input_string = false; // no need to update the input_string
           }
+        // Or look for two valid speed related changes at one time
         } else if (app2xaio.length()==12) {
           if ( (ms_delay_check(app2xaio.substring(0,6))) && (ms_delay_check(app2xaio.substring(6,12))) ) { // Found and performed two valid time updates
             new_input_string = false; // no need to update the input_string
           }          
-        } 
-
-        // look for an error box LED update
-        if (app2xaio.length()==2) {
-          if ( (app2xaio.charAt(0) == SPECIAL) && ( (app2xaio.charAt(1) == '0') || (app2xaio.charAt(1) == '1') ) ) { // Found a single request for error LED off
-            update_errorbox(app2xaio.charAt(1));
+        // Or look for an error box LED update
+        } else if (app2xaio.length()==2) {
+          if ( (app2xaio.charAt(0) == SPECIAL) && ( (app2xaio.charAt(1) == '0') || (app2xaio.charAt(1) == '1') || (app2xaio.charAt(1) == '2')) ) { // Found a single request for error LED off
+            if (app2xaio.charAt(1) == '2')
+              if (random(0,9) == 5)
+                update_errorbox('1');
+              else
+                update_errorbox('0');
+            else
+              update_errorbox(app2xaio.charAt(1));
             new_input_string = false; // no need to update the input_string
           }
         } 
-
+      }
+      // let the interrupt know if we are done with the app2xaio string
+      if (new_input_string == false) {
+        app2xaio.clear();  // start again with an empty string
+        app2_building = true;
       }
     }
   }
@@ -527,10 +582,21 @@ int parse_display_string(int current_index) {
   int decimal_place=0; // location of the decimal point to be added
   String temp_string; // used to convert to a ms value
 
-  // first look for tab character special cases
+  // first look for special character for unique cases
   if (display_string.charAt(current_index)==SPECIAL) {
     if (debug) Serial.println("Found a %");
     switch (display_string.charAt(current_index+1)) {
+        case '2': // Randomly Turn on the error box LED on or off
+          if(random(0,9) == 5)
+            update_errorbox ('1');
+          else
+            update_errorbox ('0');
+          search_length = -2; // remove two characters from the search string, but nothing to display
+          if (debug) {
+            Serial.print("Error Box ");
+            Serial.println(display_string.charAt(current_index+1));
+          }
+          break;    
         case '1': // Turn on the error box LED
         case '0': // Turn off the error box LED
           update_errorbox (display_string.charAt(current_index+1));
@@ -548,6 +614,8 @@ int parse_display_string(int current_index) {
           if (temp_string.toInt() > 0) {
             if (display_string.charAt(current_index+1) == 'S') { // Speed setting of 1 to 9999 mS per display
               Delay_ms = temp_string.toInt(); // uipdate a GLOBAL variable
+              if (Delay_ms == 9999)
+                Delay_ms = Delay_default_ms; // max is a way to get back to the default
               search_length = -6; // remove 5 characters from the search string, but nothing to display  
               if (debug) {
                 Serial.print("Delay_ms ");
@@ -555,6 +623,8 @@ int parse_display_string(int current_index) {
               } 
             } else if (display_string.charAt(current_index+1) == 'E') { // Speed setting of 1 to 9999 mS per display
               EndOfSubstring_ms = temp_string.toInt(); // uipdate a GLOBAL variable
+              if (EndOfSubstring_ms == 9999)
+                EndOfSubstring_ms = EOS_default_ms; // max is a way to go back to default speed
               search_length = -6; // remove 5 characters from the search string, but nothing to display  
               if (debug) {
                 Serial.print("EndOfSubstring_ms ");
@@ -743,23 +813,8 @@ void setup()
   digitalWrite(ErrorBox_LED, HIGH); // turn off the Error Box LED
   // setup Bluetooth BLE
   ble_initialize(); // setup ble 
-  //setup the default string to display on powerup 
-  //input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n "; 
-  //input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nBAT %BBV\n "; 
-  //input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \n555-2368\n%P2000        Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nJL5-2020\n%P2000 \nBAT %BBV\n "; // default if the incoming app2xaio is not one to display
-  //input_string = "BAT %BBV"; // default if the incoming app2xaio is not one to display
-  //input_string = "%NNN \n Hi %NN\n       BAT %BBV        "; // default if the incoming app2xaio is not one to display
-  //input_string = "%1  Hi  \n  Bye \n%0Three\n%1Four\n%0Five\n%1Six\n%0"; // default if the incoming app2xaio is not one to display
-  //input_string = "%1  Hi  \n%0  Bye "; // default if the incoming app2xaio is not one to display
-  //input_string = "  Hi  \n%P4000  Bye "; // default if the incoming app2xaio is not one to display
-  //input_string = "%NNNNN"; // random numbers
-  //input_string = "12345678"; // default if the incoming app2xaio is not one to display
-  //input_string = "0OH%D123%D"; // default if the incoming app2xaio is not one to display
-  //input_string = "       Firmware Version   V%V  "; // default if the incoming app2xaio is not one to display
-  //input_string = "%T\n       Test Complete\n \n%BBV BAT\n%P2000 "; // default if the incoming app2xaio is not one to display
-  //input_string = "%E0050%0\n%1\n%0\n%1\n%0\n%1\n%0\n%1";
-  //input_string = "%BB";
-  //input_string = "%BB\n%P9999W1\n%P9999W2\n%P9999W3\nZzzzzz\n%P5000%Z";
+  
+  // Looking at most characters, 8 at a time
   //input_string = "@ABCDEFG";
   //input_string = "HIJKLMNO";
   //input_string = "PQRSTUVW";
@@ -769,12 +824,27 @@ void setup()
   //input_string = "pqrstuvw";
   //input_string = "xyz{|}~ ";
   //input_string = " !\"#$%&'";
-  //input_string = "()*+'-./";
+  //input_string = "()*+`-./";
   //input_string = "01234567";
   //input_string = "89:;<=>?";
-  //input_string = "%0%BBB\n%1%BBB\n";
-  //input_string = " ";  // blank
 
+  //input_string = "_-`:;=_";  // similar characters, maybe not for normal usage...
+
+  //strings for the APP tested here first
+  //input_string = "%E9999%S9999       We're ready to believe you        \n  GHOST\nBUSTERS!\n \n555-2368\n%P2000        Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nJL5-2020\n%P2000 "; // Default
+  //input_string = "%1"; // Error Box On, must only be 2 chars so it can happen any time
+  //input_string = "%0"; // Error Box Off, must only be 2 chars so it can happen any time
+  //input_string = "%S0070       -        \n%P2000 \n%S9999 ";  // Single Left
+  //input_string = "%E0070-\n -\n  -\n   -\n    -\n     -\n      -\n       -\n \n%P2000 \n%E9999 ";  // Single Right
+  //input_string = "%E0070%S0070       --------\n -------\n  ------\n   -----\n    ----\n     ---\n      --\n       -\n        ";  // Powercell Ramp
+  //input_string = "%E0120%S0120--------_-`-_-`-_-`-_-`-____________-`-_-`-_-`-_-`-_-`````````````-_-`-_-`-_-`-_-`--------";  // Wave
+  //input_string = "%E9999%S9999BAT %BBV"; // display battery voltage
+  //input_string = "%E9999%S9999%2  %NNNNN"; // display of 6 digit Random numbers
+  //input_string = "%E9999%S9999 "; // Blank Display digits
+  //input_string = "%E9999%S9999       Firmware Version   V%V  \n%P2000"; // Display firmware version number
+  //input_string = "%E9999%S9999%T"; // Run the test pattern
+
+  //Requested strings
   // Cap
   //input_string = "       We're ready to believe you        \n  GHOST\nBUSTERS!\n \n555-2368\n%P2000        Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nJL5-2020\n%P2000 "; // Requested
   // Hugh
@@ -786,6 +856,7 @@ void setup()
   //input_string = "       Ghostbusters - We're Ready to Beleive You!        \n  \n  GHOST\nBUSTERS!\n \n       We're Ready to Beleive You!        \n ";
   //
   //input_string = " \n%E0200\n%1WARNING\n%0 \n%1WARNING\n%0 \n%1WARNING\n%0 \n%1WARNING\n%0 \n%1WARNING\n%0 \n                  PKE ALERT!            \n \n%1WARNING\n%0  \n%1WARNING\n%0 \n%1WARNING\n%0  \n%1WARNING\n%0 \n%1WARNING\n%0 \n%E1000%P3000        Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \n555-2368\n%P4000 \n";
+  
   //default test display string if no one asks for a specific sequence
   input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \n555-2368\n%P2000        Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nJL5-2020\n%P2000 \nBAT %BBV\n "; // default if the incoming app2xaio is not one to display
 }
@@ -802,6 +873,9 @@ void loop() {
   if (new_input_string) {
     new_input_string = false; // only update once at this point in the loop
     input_string = app2xaio; // pass the incoming string to the string that will be displayed
+    // then clear out app2xaio so that a new string can be received
+    app2xaio.clear();  // start with an empty string
+    app2_building = true;  // OK to start building the app2xaio string again
     if (debug) {
       Serial.print("main loop,  new string, input_string = {");
       Serial.print(input_string + "}  ");
@@ -809,9 +883,10 @@ void loop() {
       Serial.println(input_string.length());
     }
   }
-  // reening check and 
-  charging_check(); // look at the 5V feedback to see if we are plugged into a USB cable providing power
-                    // Display will be off since we do not want to use that power for display
+  // chargening check to turn off display while charging
+  if (!debug_msg_in) 
+    charging_check(); // look at the 5V feedback to see if we are plugged into a USB cable providing power
+                      // Display will be off since we do not want to use that power for display
 
   // Battery check and possible warning message
   battery_check(); // If too low, blank the display for a while and flash the ERROR box LED
@@ -833,7 +908,7 @@ void loop() {
     for (int i = CurrentStart; i<=min( max(CurrentStart,CurrentStart+CurrentLength-8),max(CurrentStart,Str_length-8) ); i++) {
       update_display(i,CurrentLength-1);
       // delay, but keep checking for incoming strings
-      if (i > CurrentStart)
+      if (CurrentLength >8)
         delay_check(Delay_ms); // the scrolling delay
     }
     
