@@ -71,6 +71,29 @@ The default string is currently:
 input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \n555-2368\n%P2000        Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nJL5-2020\n%P2000 \nBAT %BBV\n "; // default if the incoming app2xaio is not one to display
 
 
+## Android MIT APP Inventor APP
+
+The Android APP is finished (at least a working first pass!)
+
+You can see the full source for this if you install the MIT APP Inventor on your computer:
+https://appinventor.mit.edu/
+https://appinventor.mit.edu/explore/ai2/setup
+
+Download the file from GizmoDisplayAPP (.aia is source code and .apk is the APP code for installation on your phone.
+
+_Source code:_
+Open and log into MIT APP Inventor and go to Projects -> Import Project (aia) from my computer...
+
+_Android APP:_
+https://appinventor.mit.edu/explore/save-your-app
+Move the .apk to the phone — a cable, a cloud drive, or a download link all work — and open it on the phone to install.
+Be sure and allow the app to have location/local access and then the bluetooth part should work.
+
+**Notes:**
+   * The Gizmo display only looks for a new string at the end of displaying the current string.  So be patient!  If you send some new string to the display it may take a while to show up so do not keep trying to send it or other strings since they will just be ignored.
+   * The APP uses the "&" instead of "\n" since Android does not allow you to easily enter a newline character and thinks \n is just two ASCII characters.  In the APP code, the "&" is converted to a newline character so that the Gizmo display does not have to deal with that at all.  This also means that the default string in the gizmodisplay can display the "&" character and you can't from the APP.  BUT... the Gizmo display has a "+" symbol encoded for the "&", so this really does not change what symbols can be displayed.
+
+
 ## Using the Nordic nRF Connect APP
 
 For Andriod and iOS, the Nordic Semiconductor nRF Connect APP can allow you to manually update the display.  I am working on an Android only APP that should be easier to use, but this Nordic APP is still very usable.
