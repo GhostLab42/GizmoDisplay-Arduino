@@ -53,6 +53,7 @@
   so can be used to dynamically adjust the update rate of the displaying string.
 
   Release Notes:
+  V1.2 : 11/15/2026 Change to show battery voltage on power up if battery not fully charged.  Also updated deep sleep.
   V1.1 : 11/07/2026 First version working with APP, lots of minor changes found through debuging
   V1.0 : xx/xx/2026 Initial version
 
@@ -63,7 +64,7 @@
 */
 
 // Version number
-String VERSION = "1.1"; // Must be a 3 character version number formatted as "X.X", where X can be any number
+String VERSION = "1.2"; // Must be a 3 character version number formatted as "X.X", where X can be any number
 // Globals for use by anyone...
 bool debug = false; // indicates if we should output any serial data
 bool debug_msg_in = false; // indicates if we should output any serial data about an incoming BLE string
@@ -526,7 +527,7 @@ void update_display_string() {
 
 
 #define uS_TO_S_FACTOR 1000000ULL  // Conversion factor for micro seconds to seconds
-#define TIME_TO_SLEEP  10          // Time ESP32 will go to sleep (in seconds)
+#define TIME_TO_SLEEP  5*60        // Time ESP32 will go to sleep (in seconds)
 
 void deep_sleep(bool wake_up_later){
   // Blank the display
@@ -542,7 +543,12 @@ void deep_sleep(bool wake_up_later){
   Str_length = display_string.length();
   update_display(0,1);
   if (wake_up_later) {
+    delay_check(3000);  // also runs ble_support
     // set up a timer to wake up
+    display_string = "NAP  Zzz"; // Wait 2
+    Str_length = display_string.length();  
+    update_display(0,8);
+    delay_check(3000);  // also runs ble_support
     esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
     Serial.println("Going to sleep now...");
     delay(100); // Allow serial buffer to empty
@@ -683,7 +689,7 @@ int parse_display_string(int current_index) {
 }
 
 
-// Charching_check
+// Charging_check
 // Look for a voltage lower than 3.0V and if so add a warning message
 // Then return to whatever was displaying
 void charging_check() {
@@ -750,10 +756,16 @@ void battery_check() {
         update_errorbox (char(i%2 + '0'));
         delay_check(100);  // also runs ble_support
       }
-      display_string = "Low Bat "; // blank the display
+      display_string = "Low Bat "; // display the message
       Str_length = display_string.length();
       update_display(0,8);
       delay_check(2000);  // also runs ble_support
+      display_string = "BAT %BBV"; // display the message
+      Str_length = display_string.length();
+      update_display_string();
+      update_display(0,8);
+      delay_check(2000);  // also runs ble_support
+
       // Blank the display
       display_string = " "; // blank the display
       Str_length = display_string.length();
@@ -763,8 +775,9 @@ void battery_check() {
         update_errorbox (char(i%2 + '0'));
         delay_check(100);  // also runs ble_support
       } 
-      // wait a bit
-      delay_check(4000);  // also runs ble_support
+      if(vbat<220) deep_sleep(true);
+      // wait a longer time so it does not drain the battery as fast
+      delay_check(10000);  // also runs ble_support
     }
     battery_skip_count++;
   } else {
@@ -772,6 +785,27 @@ void battery_check() {
   }
 } // battery_check
 
+
+// Intended to only be called at power up
+// If the battery voltage is lower than 3.3V and if so display a message
+void initial_battery_check() {
+  static uint8_t battery_skip_count = 0; // used to control how often the warning is displayed
+  // Is the battery so low that we should issue a warning?
+  int vbat = measure_battery();  // measure the battery
+  if (vbat < 330) {
+      display_string = "BAT %BBV"; // display the message
+      Str_length = display_string.length();
+      update_display_string();
+      update_display(0,8);
+      delay_check(3000);  // also runs ble_support
+      // Blank the display
+      display_string = " "; // blank the display
+      Str_length = display_string.length();
+      update_display(0,1);
+      // Wait a bit
+      delay_check(2000);  // also runs ble_support
+   }
+}
 
 void delay_check(int wait_ms) {
   // Replace the blocking delay with a mS timer polling and incoming string detection watch
@@ -813,6 +847,7 @@ void setup()
   digitalWrite(ErrorBox_LED, HIGH); // turn off the Error Box LED
   // setup Bluetooth BLE
   ble_initialize(); // setup ble 
+  initial_battery_check(); // Display a message if the initial battery voltage is below a threshold
   
   // Looking at most characters, 8 at a time
   //input_string = "@ABCDEFG";
@@ -843,7 +878,8 @@ void setup()
   //input_string = "%E9999%S9999 "; // Blank Display digits
   //input_string = "%E9999%S9999       Firmware Version   V%V  \n%P2000"; // Display firmware version number
   //input_string = "%E9999%S9999%T"; // Run the test pattern
-
+  //input_string = "       Are you troubled by strange noises in the middle of the night?          Do you experience feelings of dread in your basement or attic?          Have you or any of your family ever seen a spook, specter or ghost?          If the answer is yes, then don't wait another minute. Pick up your phone and call the professionals.  Ghostbusters!          Our courteous and efficient staff is on call twenty-four hours a day to serve all your supernatural elimination needs.          We're ready to believe you!        \n  GHOST\nBUSTERS!\n \n555-2368\n%P2000 \n";
+  
   //Requested strings
   // Cap
   //input_string = "       We're ready to believe you        \n  GHOST\nBUSTERS!\n \n555-2368\n%P2000        Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nJL5-2020\n%P2000 "; // Requested
@@ -858,7 +894,7 @@ void setup()
   //input_string = " \n%E0200\n%1WARNING\n%0 \n%1WARNING\n%0 \n%1WARNING\n%0 \n%1WARNING\n%0 \n%1WARNING\n%0 \n                  PKE ALERT!            \n \n%1WARNING\n%0  \n%1WARNING\n%0 \n%1WARNING\n%0  \n%1WARNING\n%0 \n%1WARNING\n%0 \n%E1000%P3000        Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \n555-2368\n%P4000 \n";
   
   //default test display string if no one asks for a specific sequence
-  input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \n555-2368\n%P2000        Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nJL5-2020\n%P2000 \nBAT %BBV\n "; // default if the incoming app2xaio is not one to display
+  input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \n555-2368\n%P2000 \n%P2000        We're Ready to believe you!        \n  GHOST\nBUSTERS!\n \nJL5-2020\n%P2000 \n%P2000 "; // default if the incoming app2xaio is not one to display
 }
 
 // the loop function runs over and over again forever
@@ -883,6 +919,7 @@ void loop() {
       Serial.println(input_string.length());
     }
   }
+
   // chargening check to turn off display while charging
   if (!debug_msg_in) 
     charging_check(); // look at the 5V feedback to see if we are plugged into a USB cable providing power
