@@ -42,29 +42,35 @@ Instructions for Arduino software installation (https://wiki.seeedstudio.com/xia
 
   A single string will be read in, and two special characters will be looked for:<br>
   1) '\n' - new line character will separate sets of characters to be displayed into substrings<br>
-  2) '%' - will be used to modify parts of the string and perform actions
+     A substring of 1 to 8 characters to be displayed will be displayed statically, and any previous portion of the display will be cleared<br>
+     A substring of 9 or more characters to be displayed will be scrolled across the display.  Typically you add 7 blanks before and 8 blanks after the desired text so that it starts with the first character and scrolls the rest of the characters completely off of the display.
+  3) '%' - will be used to modify parts of the string and perform actions
 
     Changes to the string (done in update_string)
     %N .. %NNNNNNN  - replace with a random number from 2 to 8 digits (Number of adjacent N's +1)
     %B .. %BB       - replace with the battery voltage in volts
     %V              - replace with Version number
   
-    Immediate Actions (in parse_display_string and ble_support)  If sent as a separate string, does not change the display string
+    Immediate Actions (in parse_display_string and ble_support) that must be at the start of a substring.  If sent as a separate string, they will not replace the display string.
     %2 - turn on (10%) or off (90%) the Error Box LED
     %1 - turn on the Error Box LED
     %0 - turn off the Error Box LED
     %Sxxxx - update the Speed setting.  How fast the characters scroll.  
-              Each "x" must be a digit (0-9) indicating the # of mS between updates to the display (0001 to 9999)
-    %Exxxx - update the substring delay/pause.  Each string or substring delineated by a \n will have a delay after it is displayed.
-              Each "x" must be a digit (0-9) indicating the # of mS between updates to the display (0001 to 9999)
+              Each "x" must be a digit (0-9) indicating the # of mS between updates to the display (0001 to 9998)
+              The value is sticky, so will affect everything after, including the start of the this display string.
+              A value of 9999 will reset the value back to the power-on default value.
+    %Exxxx - update the End of substring delay/pause.  Each string or substring delineated by a \n will have a delay after it is displayed.
+              Each "x" must be a digit (0-9) indicating the # of mS between updates to the display (0001 to 9998)
+              The value is sticky, so will affect everything after, including the start of the this display string.
+              A value of 9999 will reset the value back to the power-on default value.
     
-    Other immediate Actions done only in parse_display_string
+    Other immediate Actions done only in parse_display_string and must also only be placed at the start of a substring:
     %Pxxxx - just Pause.  Each "x" must be a digit (0-9) indicating the # of mS to just pause and do not do any updates (0001 to 9999)
     %T - run the test pattern to make sure all segments of each display are working - does use the blocking delay (currently)
     %Z - put the board in deep sleep = must press the reset button to wake it up!
 
-  A string of just " " will blank the display.
-  A single string will be continually re-displayed until a new string is received.
+  A string of just a single space (" ") will blank the display.<br>
+  The single string will be continually re-displayed until a new string is received.
 
   An incoming string of "%Sxxxx" (Speed setting) "%Exxxx" (Substring Pause) will not replace the looping string, 
   so can be used to dynamically adjust the update rate of the displaying string.
@@ -78,7 +84,7 @@ The last assignment to the String "input_string" will be used for the main strin
 On powerup, the code will using this display string since the Bluetooth overrides are not "sticky".
 
 The default string is currently:
-input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \n555-2368\n%P2000        Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nJL5-2020\n%P2000 \nBAT %BBV\n "; // default if the incoming app2xaio is not one to display
+input_string = "       Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \n555-2368\n%P2000        Who You Gonna Call ?        \n  GHOST\nBUSTERS!\n \nJL5-2020\n%P2000 \nBAT %BBV\n "; // default
 
 
 ## Android MIT APP Inventor APP
